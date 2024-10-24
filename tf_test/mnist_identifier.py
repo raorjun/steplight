@@ -15,7 +15,7 @@ def preprocess_image(image):
     image = np.expand_dims(image, axis=0).astype(np.float32)
     return image
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 while True:
     ret, frame = cap.read()
@@ -23,16 +23,17 @@ while True:
         break
 
     input_data = preprocess_image(frame)
-
-
     interpreter.set_tensor(input_details[0]['index'], input_data)
-
-
     interpreter.invoke()
     output_data = interpreter.get_tensor(output_details[0]['index'])
-    predicted_digit = np.argmax(output_data)
 
-    cv2.putText(frame, f'Predicted: {predicted_digit}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
+    if output_data.size == 0 or np.max(output_data) < 0.5:
+        predicted_text = 'None'
+    else:
+        predicted_digit = np.argmax(output_data)
+        predicted_text = f'Predicted: {predicted_digit}'
+
+    cv2.putText(frame, predicted_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2, cv2.LINE_AA)
     cv2.imshow('Webcam Feed', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
