@@ -3,7 +3,7 @@ import tflite_runtime.interpreter as tflite
 import cv2
 
 # Load the TFLite model and allocate tensors
-interpreter = tflite.Interpreter(model_path='exact_image_classifier.tflite')
+interpreter = tflite.Interpreter(model_path='exact_image_classifier_with_glare.tflite')
 interpreter.allocate_tensors()
 
 # Get input and output tensor details
