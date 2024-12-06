@@ -19,7 +19,7 @@ def preprocess_image(image):
     return image
 
 # Capture video from the webcam
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 while True:
     ret, frame = cap.read()
