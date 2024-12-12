@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.adapters import common
-from pycoral.adapters.tensor_image import TensorImage
+from pycoral.adapters.common import tensor
 
 # Load the TFLite model and allocate tensors
 interpreter = make_interpreter('crosswalk_detector_edgetpu.tflite')
@@ -19,7 +19,7 @@ def preprocess_frame(frame, img_size=224):
 
 def predict(frame):
     """Run inference and return the prediction."""
-    tensor_image = TensorImage(frame)
+    tensor_image = tensor(frame)
     interpreter.set_tensor(input_details[0]['index'], tensor_image.tensor)
     interpreter.invoke()
     output_data = interpreter.get_tensor(output_details[0]['index'])
