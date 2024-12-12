@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from pycoral.utils.edgetpu import make_interpreter
-from pycoral.adapters.common import input_size
+from pycoral.adapters import common
 from pycoral.adapters.tensor_image import TensorImage
 
 # Load the TFLite model and allocate tensors
