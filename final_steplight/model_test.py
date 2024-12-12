@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
-import tensorflow as tf
+import tflite_runtime.interpreter as tflite
 
 # Load the TFLite model and allocate tensors
-interpreter = tf.lite.Interpreter(model_path='crosswalk_detector.tflite')
+interpreter = tflite.Interpreter(model_path='crosswalk_detector.tflite')
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
