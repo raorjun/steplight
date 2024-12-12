@@ -14,7 +14,6 @@ interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
-
 def preprocess_frame(frame):
     """Preprocess frame exactly as in training"""
     # Resize to match MobileNetV2 input size
@@ -24,7 +23,6 @@ def preprocess_frame(frame):
     # Add batch dimension
     frame = np.expand_dims(frame, axis=0)
     return frame
-
 
 # Initialize camera
 cap = cv2.VideoCapture(0)  # Try 2 or other numbers if this doesn't work
