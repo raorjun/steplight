@@ -23,7 +23,7 @@ def preprocess_image(image):
     return image
 
 # Initialize the webcam feed.
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(2)
 
 # Main loop to process webcam frames.
 while True:
