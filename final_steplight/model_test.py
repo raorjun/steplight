@@ -1,88 +1,87 @@
 import cv2
 import numpy as np
-from pycoral.utils.edgetpu import make_interpreter
-from pycoral.adapters import common
-# from pycoral.adapters.common import tensor
+import tflite_runtime.interpreter as tflite
 
-# Load the TFLite model and allocate tensors
-interpreter = make_interpreter('crosswalk_detector.tflite')
+# Constants matching your training code
+IMG_SIZE = 224
+CLASS_NAMES = ['no_cross', 'cross']  # Note: 0=no_cross, 1=cross from your training
+
+# Load the TFLite model
+interpreter = tflite.Interpreter(model_path='crosswalk_detector.tflite')
 interpreter.allocate_tensors()
+
+# Get input and output details
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
-def preprocess_frame(frame, img_size=224):
-    """Resize and normalize the frame for the model."""
-    frame = cv2.resize(frame, (img_size, img_size))
+
+def preprocess_frame(frame):
+    """Preprocess frame exactly as in training"""
+    # Resize to match MobileNetV2 input size
+    frame = cv2.resize(frame, (IMG_SIZE, IMG_SIZE))
+    # Normalize to [0,1] as done in training
     frame = frame.astype('float32') / 255.0
+    # Add batch dimension
     frame = np.expand_dims(frame, axis=0)
     return frame
 
-def predict(frame):
-    """Run inference and return the prediction."""
-    common.set_input(interpreter, frame)  # Replace tensor_image lines with this
-    interpreter.invoke()
-    output_data = interpreter.get_tensor(output_details[0]['index'])
-    return output_data[0][0]
 
-# def predict(frame):
-#     """Run inference and return the prediction."""
-#     tensor_image = tensor(frame)
-#     interpreter.set_tensor(input_details[0]['index'], tensor_image.tensor)
-#     interpreter.invoke()
-#     output_data = interpreter.get_tensor(output_details[0]['index'])
-#     return output_data[0][0]
-
-# Initialize webcam
-cap = cv2.VideoCapture(0)
+# Initialize camera
+cap = cv2.VideoCapture(0)  # Try 2 or other numbers if this doesn't work
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 if not cap.isOpened():
-    print("Error: Could not open webcam.")
+    print("Error: Could not open camera.")
     exit()
 
-# Prediction parameters
-CROSS_THRESHOLD = 0.85  # Threshold for "cross"
-CONFIDENCE_THRESHOLD = 0.75  # Minimum confidence required
+print("Press 'q' to quit")
+print("Press '+'/'-' to adjust threshold")
+
+# Threshold for classification
+THRESHOLD = 0.5
 
 while True:
-    # Capture a frame
     ret, frame = cap.read()
     if not ret:
-        print("Error: Could not read frame.")
+        print("Failed to grab frame")
         break
 
-    # Preprocess the frame and predict
-    preprocessed_frame = preprocess_frame(frame)
-    prediction = predict(preprocessed_frame)
-    confidence = prediction if prediction > 0.5 else 1 - prediction
+    # Keep original frame for display
+    display_frame = frame.copy()
 
-    # Determine label and color
-    if prediction > CROSS_THRESHOLD and confidence > CONFIDENCE_THRESHOLD:
-        label = "Cross"
-        color = (0, 255, 0)  # Green
-    else:
-        label = "No Cross"
-        color = (0, 0, 255)  # Red
+    # Preprocess frame
+    processed_frame = preprocess_frame(frame)
 
-    # Display label and confidence
-    cv2.putText(frame, f"{label}: {confidence:.2f}", (10, 30),
+    # Run inference
+    interpreter.set_tensor(input_details[0]['index'], processed_frame)
+    interpreter.invoke()
+    prediction = interpreter.get_tensor(output_details[0]['index'])[0][0]
+
+    # Determine class and color
+    is_cross = prediction > THRESHOLD
+    label = CLASS_NAMES[1] if is_cross else CLASS_NAMES[0]
+    confidence = prediction if is_cross else (1 - prediction)
+    color = (0, 255, 0) if is_cross else (0, 0, 255)  # Green for cross, Red for no_cross
+
+    # Draw predictions on frame
+    cv2.putText(display_frame, f"{label}: {confidence:.2f}", (10, 30),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
-
-    # Display threshold
-    cv2.putText(frame, f"Thresh: {CROSS_THRESHOLD}", (10, 60),
+    cv2.putText(display_frame, f"Threshold: {THRESHOLD:.2f}", (10, 60),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
     # Show the frame
-    cv2.imshow('Crosswalk Detector', frame)
+    cv2.imshow('Crosswalk Detector', display_frame)
 
-    # Key controls for thresholds and exit
+    # Handle key presses
     key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'):  # Quit
+    if key == ord('q'):
         break
-    elif key == ord('+') and CROSS_THRESHOLD < 0.95:  # Increase threshold
-        CROSS_THRESHOLD += 0.05
-    elif key == ord('-') and CROSS_THRESHOLD > 0.55:  # Decrease threshold
-        CROSS_THRESHOLD -= 0.05
+    elif key == ord('+') and THRESHOLD < 0.95:
+        THRESHOLD += 0.05
+    elif key == ord('-') and THRESHOLD > 0.05:
+        THRESHOLD -= 0.05
 
-# Release resources
+# Cleanup
 cap.release()
 cv2.destroyAllWindows()
