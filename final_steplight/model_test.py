@@ -5,7 +5,7 @@ from pycoral.adapters import common
 # from pycoral.adapters.common import tensor
 
 # Load the TFLite model and allocate tensors
-interpreter = make_interpreter('crosswalk_detector_edgetpu.tflite')
+interpreter = make_interpreter('crosswalk_detector.tflite')
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
