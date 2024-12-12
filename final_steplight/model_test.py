@@ -1,13 +1,14 @@
 import cv2
 import numpy as np
-import tflite_runtime.interpreter as tflite
+from pycoral.utils.edgetpu import make_interpreter
+from pycoral.adapters.common import input_size
+from pycoral.adapters.tensor_image import TensorImage
 
 # Load the TFLite model and allocate tensors
-interpreter = tflite.Interpreter(model_path='crosswalk_detector.tflite')
+interpreter = make_interpreter('crosswalk_detector_edgetpu.tflite')
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
-
 
 def preprocess_frame(frame, img_size=224):
     """Resize and normalize the frame for the model."""
@@ -16,14 +17,13 @@ def preprocess_frame(frame, img_size=224):
     frame = np.expand_dims(frame, axis=0)
     return frame
 
-
 def predict(frame):
     """Run inference and return the prediction."""
-    interpreter.set_tensor(input_details[0]['index'], frame)
+    tensor_image = TensorImage(frame)
+    interpreter.set_tensor(input_details[0]['index'], tensor_image.tensor)
     interpreter.invoke()
     output_data = interpreter.get_tensor(output_details[0]['index'])
     return output_data[0][0]
-
 
 # Initialize webcam
 cap = cv2.VideoCapture(0)
